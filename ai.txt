@@ -1,0 +1,2 @@
+Реализуй функцию добавления элемента в список в файле index.js.
+Ссылка на репозиторий: https://github.com/lyricaltxc/vibe2025/tree/master
