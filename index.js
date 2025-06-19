@@ -39,7 +39,10 @@ async function getHtmlRows() {
             </td>
             <td>
                 <button onclick="document.getElementById('form-${item.id}').style.display='inline'; document.getElementById('text-${item.id}').style.display='none';">Edit</button>
-                <button onclick="alert('Delete is implemented in another branch')">Delete</button>
+                <form method="POST" action="/delete" style="display:inline;">
+                    <input type="hidden" name="id" value="${item.id}" />
+                    <button type="submit">Delete</button>
+                </form>
             </td>
         </tr>
     `).join('');
@@ -57,6 +60,7 @@ async function handleRequest(req, res) {
             res.writeHead(500, { 'Content-Type': 'text/plain' });
             res.end('Error loading index.html');
         }
+
     } else if (req.method === 'POST' && req.url === '/add') {
         let body = '';
         req.on('data', chunk => body += chunk);
@@ -76,6 +80,27 @@ async function handleRequest(req, res) {
                 res.end('Internal Server Error');
             }
         });
+
+    } else if (req.method === 'POST' && req.url === '/delete') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            const parsed = new URLSearchParams(body);
+            const id = parsed.get('id');
+
+            try {
+                const connection = await mysql.createConnection(dbConfig);
+                await connection.execute('DELETE FROM items WHERE id = ?', [id]);
+                await connection.end();
+                res.writeHead(302, { Location: '/' });
+                res.end();
+            } catch (err) {
+                console.error('Error deleting item:', err);
+                res.writeHead(500);
+                res.end('Internal Server Error');
+            }
+        });
+
     } else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('Route not found');
