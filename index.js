@@ -32,13 +32,14 @@ async function getHtmlRows() {
             <td>${index + 1}</td>
             <td>
                 <span id="text-${item.id}">${item.text}</span>
-                <form id="form-${item.id}" style="display:none;" onsubmit="event.preventDefault();">
-                    <input type="text" id="input-${item.id}" value="${item.text}" />
+                <form id="form-${item.id}" method="POST" action="/edit" style="display:none; margin:0;">
+                    <input type="hidden" name="id" value="${item.id}" />
+                    <input type="text" name="text" value="${item.text}" />
                     <button type="submit">Save</button>
                 </form>
             </td>
             <td>
-                <button onclick="document.getElementById('form-${item.id}').style.display='inline'; document.getElementById('text-${item.id}').style.display='none';">Edit</button>
+                <button onclick="document.getElementById('form-${item.id}').style.display='inline'; document.getElementById('text-${item.id}').style.display='none'; this.style.display='none';">Edit</button>
                 <form method="POST" action="/delete" style="display:inline;">
                     <input type="hidden" name="id" value="${item.id}" />
                     <button type="submit">Delete</button>
@@ -96,6 +97,27 @@ async function handleRequest(req, res) {
                 res.end();
             } catch (err) {
                 console.error('Error deleting item:', err);
+                res.writeHead(500);
+                res.end('Internal Server Error');
+            }
+        });
+
+    } else if (req.method === 'POST' && req.url === '/edit') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            const parsed = new URLSearchParams(body);
+            const id = parsed.get('id');
+            const text = parsed.get('text');
+
+            try {
+                const connection = await mysql.createConnection(dbConfig);
+                await connection.execute('UPDATE items SET text = ? WHERE id = ?', [text, id]);
+                await connection.end();
+                res.writeHead(302, { Location: '/' });
+                res.end();
+            } catch (err) {
+                console.error('Error updating item:', err);
                 res.writeHead(500);
                 res.end('Internal Server Error');
             }
