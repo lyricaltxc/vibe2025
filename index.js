@@ -27,7 +27,7 @@ async function retrieveListItems() {
 
 async function getHtmlRows() {
     const todoItems = await retrieveListItems();
-    return todoItems.map((item, index) => 
+    return todoItems.map((item, index) => `
         <tr>
             <td>${index + 1}</td>
             <td>
@@ -39,10 +39,10 @@ async function getHtmlRows() {
             </td>
             <td>
                 <button onclick="document.getElementById('form-${item.id}').style.display='inline'; document.getElementById('text-${item.id}').style.display='none';">Edit</button>
-                <button onclick="alert('Can't do it')">Delete</button>
+                <button onclick="alert('Delete is implemented in another branch')">Delete</button>
             </td>
         </tr>
-    ).join('');
+    `).join('');
 }
 
 async function handleRequest(req, res) {
