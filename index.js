@@ -32,7 +32,7 @@ async function getHtmlRows() {
             <td>${index + 1}</td>
             <td>
                 <span id="text-${item.id}">${item.text}</span>
-                <form id="form-${item.id}" method="POST" action="/edit" style="display:none; margin:0;">
+                <form method="POST" action="/edit" id="form-${item.id}" style="display:none;">
                     <input type="hidden" name="id" value="${item.id}" />
                     <input type="text" name="text" value="${item.text}" />
                     <button type="submit">Save</button>
