@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const crypto = require('crypto');
+const https = require('https');
 
 const PORT = 3000;
 
@@ -12,6 +13,10 @@ const dbConfig = {
     password: 'Superlook1!',
     database: 'todolist',
 };
+
+// Telegram Bot config
+const TELEGRAM_BOT_TOKEN = '8160576032:AAEZerZ6pjs1BVUeBn0EVuxsvW-u3_EzqbQ'; // <== Вставь сюда токен бота
+const TELEGRAM_CHAT_ID = '-1002511555649';   // <== Твой ID канала с минусом
 
 // Простая сессия в памяти (для демонстрации)
 const sessions = {};
@@ -92,6 +97,48 @@ async function parseBody(req) {
         let body = '';
         req.on('data', chunk => { body += chunk; });
         req.on('end', () => resolve(new URLSearchParams(body)));
+    });
+}
+
+function sendTelegramMessage(text) {
+    return new Promise((resolve, reject) => {
+        const data = JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text,
+            parse_mode: 'HTML',
+        });
+
+        const options = {
+            hostname: 'api.telegram.org',
+            port: 443,
+            path: `/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data),
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let responseBody = '';
+            res.on('data', chunk => responseBody += chunk);
+            res.on('end', () => {
+                if (res.statusCode === 200) {
+                    resolve();
+                } else {
+                    console.error('Telegram API error:', responseBody);
+                    reject(new Error('Telegram API error'));
+                }
+            });
+        });
+
+        req.on('error', (e) => {
+            console.error('Telegram request error:', e);
+            reject(e);
+        });
+
+        req.write(data);
+        req.end();
     });
 }
 
@@ -214,6 +261,11 @@ async function handleRequest(req, res) {
             const connection = await mysql.createConnection(dbConfig);
             await connection.execute('INSERT INTO items (text, user_id) VALUES (?, ?)', [text, userId]);
             await connection.end();
+
+            // Отправляем уведомление в Telegram
+            sendTelegramMessage(`<b>User:</b> ${username}\n<b>Action:</b> Added task\n<b>Task:</b> ${text}`)
+                .catch(e => console.error('Telegram send error:', e));
+
             res.writeHead(302, { Location: '/' });
             res.end();
         } catch (err) {
@@ -227,9 +279,23 @@ async function handleRequest(req, res) {
         const id = parsed.get('id');
 
         try {
+            // Получим текст задачи для уведомления
             const connection = await mysql.createConnection(dbConfig);
+            const [rows] = await connection.execute('SELECT text FROM items WHERE id = ? AND user_id = ?', [id, userId]);
+            if (rows.length === 0) {
+                await connection.end();
+                res.writeHead(404);
+                return res.end('Item not found');
+            }
+            const taskText = rows[0].text;
+
             await connection.execute('DELETE FROM items WHERE id = ? AND user_id = ?', [id, userId]);
             await connection.end();
+
+            // Отправляем уведомление в Telegram
+            sendTelegramMessage(`<b>User:</b> ${username}\n<b>Action:</b> Deleted task\n<b>Task:</b> ${taskText}`)
+                .catch(e => console.error('Telegram send error:', e));
+
             res.writeHead(302, { Location: '/' });
             res.end();
         } catch (err) {
@@ -244,9 +310,23 @@ async function handleRequest(req, res) {
         const text = parsed.get('text');
 
         try {
+            // Получим старый текст для уведомления
             const connection = await mysql.createConnection(dbConfig);
+            const [rows] = await connection.execute('SELECT text FROM items WHERE id = ? AND user_id = ?', [id, userId]);
+            if (rows.length === 0) {
+                await connection.end();
+                res.writeHead(404);
+                return res.end('Item not found');
+            }
+            const oldText = rows[0].text;
+
             await connection.execute('UPDATE items SET text = ? WHERE id = ? AND user_id = ?', [text, id, userId]);
             await connection.end();
+
+            // Отправляем уведомление в Telegram
+            sendTelegramMessage(`<b>User:</b> ${username}\n<b>Action:</b> Edited task\n<b>Old task:</b> ${oldText}\n<b>New task:</b> ${text}`)
+                .catch(e => console.error('Telegram send error:', e));
+
             res.writeHead(302, { Location: '/' });
             res.end();
         } catch (err) {
