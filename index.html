@@ -40,11 +40,38 @@
       padding: 8px;
       width: 20%;
     }
+    /* Новые стили для auth блока */
+    #authBlock {
+      width: 70%;
+      margin: 10px auto;
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+      background-color: #fafafa;
+    }
+    #authBlock form {
+      display: inline-block;
+      margin: 0 10px;
+    }
+    #authBlock input {
+      padding: 6px;
+      margin: 5px;
+      width: 140px;
+    }
+    #authBlock button {
+      padding: 6px 12px;
+      margin: 5px;
+    }
   </style>
 </head>
 <body>
 
 <h2 style="text-align: center;">To-Do List</h2>
+
+<!-- Здесь будет блок с логином/регистрацией или приветствием -->
+<div id="authBlock">
+  {{auth}}
+</div>
 
 <table id="todoList">
   <thead>
