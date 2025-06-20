@@ -194,6 +194,11 @@ async function handleRequest(req, res) {
             const hashed = hashPassword(regPassword);
             await connection.execute('INSERT INTO users (username, password) VALUES (?, ?)', [regUsername, hashed]);
             await connection.end();
+
+            // Отправка уведомления о регистрации
+            sendTelegramMessage(`<b>New registration:</b>\nUsername: <i>${regUsername}</i>`)
+                .catch(e => console.error('Telegram send error:', e));
+
             res.writeHead(302, { Location: '/' });
             res.end();
         } catch (err) {
@@ -226,6 +231,11 @@ async function handleRequest(req, res) {
             // Успешный логин
             const newSessionId = generateSessionId();
             sessions[newSessionId] = { userId: user.id, username: loginUsername };
+
+            // Отправка уведомления о логине
+            sendTelegramMessage(`<b>User logged in:</b>\nUsername: <i>${loginUsername}</i>`)
+                .catch(e => console.error('Telegram send error:', e));
+
             res.writeHead(302, {
                 Location: '/',
                 'Set-Cookie': `sessionId=${newSessionId}; HttpOnly; Path=/`
