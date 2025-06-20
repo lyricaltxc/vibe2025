@@ -195,8 +195,8 @@ async function handleRequest(req, res) {
             await connection.execute('INSERT INTO users (username, password) VALUES (?, ?)', [regUsername, hashed]);
             await connection.end();
 
-            // Отправка уведомления о регистрации
-            sendTelegramMessage(`<b>New registration:</b>\nUsername: <i>${regUsername}</i>`)
+            // Уведомление о регистрации
+            sendTelegramMessage(`<b>User:</b> ${regUsername}\n<b>Action:</b> Registered`)
                 .catch(e => console.error('Telegram send error:', e));
 
             res.writeHead(302, { Location: '/' });
@@ -232,8 +232,8 @@ async function handleRequest(req, res) {
             const newSessionId = generateSessionId();
             sessions[newSessionId] = { userId: user.id, username: loginUsername };
 
-            // Отправка уведомления о логине
-            sendTelegramMessage(`<b>User logged in:</b>\nUsername: <i>${loginUsername}</i>`)
+            // Уведомление о логине
+            sendTelegramMessage(`<b>User:</b> ${loginUsername}\n<b>Action:</b> Logged in`)
                 .catch(e => console.error('Telegram send error:', e));
 
             res.writeHead(302, {
@@ -250,6 +250,10 @@ async function handleRequest(req, res) {
 
     } else if (req.method === 'POST' && req.url === '/logout') {
         if (sessionId && sessions[sessionId]) {
+            // Отправляем уведомление о выходе в Telegram
+            sendTelegramMessage(`<b>User:</b> ${username}\n<b>Action:</b> Logged out`)
+                .catch(e => console.error('Telegram send error:', e));
+
             delete sessions[sessionId];
         }
         res.writeHead(302, {
